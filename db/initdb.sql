@@ -1,0 +1,5 @@
+\connect movies
+
+CREATE SCHEMA IF NOT EXISTS content;
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "content" TO postgres;
