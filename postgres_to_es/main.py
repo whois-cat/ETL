@@ -21,11 +21,11 @@ load_dotenv()
 class ETL:
     def __init__(self, conn):
         self.cursor = conn.cursor()
-        self.state = State(storage=JsonFileStorage(file_path='state.json'))
+        self.state = State(storage=JsonFileStorage(file_path="state.json"))
         self.es = Elasticsearch([f'{os.environ.get("ES_HOST")}'])
 
     def get_state(self):
-        last_last_updated_at = self.state.get_state('last_last_updated_at')
+        last_last_updated_at = self.state.get_state("last_last_updated_at")
         if last_last_updated_at is None:
             last_last_updated_at = datetime.fromtimestamp(0)
         else:
@@ -33,8 +33,7 @@ class ETL:
         return last_last_updated_at
 
     @backoff.on_exception(
-        wait_gen=backoff.expo,
-        exception=(psycopg2.Error, psycopg2.OperationalError)
+        wait_gen=backoff.expo, exception=(psycopg2.Error, psycopg2.OperationalError)
     )
     def get_and_load_data(self):
         query: str = """
@@ -62,7 +61,7 @@ class ETL:
             ORDER BY fw.updated_at;
         """
         self.cursor.execute(query, (self.get_state(),))
-        logging.info('Data extracted.')
+        logging.info("Data extracted.")
         while batch := self.cursor.fetchmany(int(os.environ.get("BATCH_SIZE"))):
             yield from batch
 
@@ -73,13 +72,20 @@ class ETL:
     )
     def load_data(self):
         for data in self.get_and_load_data():
-            for f in ('actors_names', 'writers_names', 'actors', 'writers',):
+            for f in (
+                "actors_names",
+                "writers_names",
+                "actors",
+                "writers",
+            ):
                 if data[f] is None:
                     data[f] = []
             data_obj = FilmWork(**data)
-            self.es.index(index='movies', doc_type="doc", id=data_obj.id, body=data_obj.dict())
-            self.state.set_state('last_last_updated_at', data['updated_at'].isoformat())
-        logging.info('Data loaded.')
+            self.es.index(
+                index="movies", doc_type="doc", id=data_obj.id, body=data_obj.dict()
+            )
+            self.state.set_state("last_last_updated_at", data["updated_at"].isoformat())
+        logging.info("Data loaded.")
 
 
 if __name__ == "__main__":
@@ -91,5 +97,5 @@ if __name__ == "__main__":
         "port": os.environ.get("POSTGRES_PORT"),
     }
     with closing(psycopg2.connect(**dsn, cursor_factory=RealDictCursor)) as pg_conn:
-        logging.info('PostgreSQL connection is open. Start load movies data.')
+        logging.info("PostgreSQL connection is open. Start load movies data.")
         ETL(pg_conn).load_data()
