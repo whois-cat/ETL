@@ -1,9 +1,6 @@
 import abc
 import json
-import logging
-
-from redis import Redis
-from utils import EnhancedJSONEncoder
+from typing import Any, Optional
 
 
 class BaseStorage:
@@ -18,18 +15,43 @@ class BaseStorage:
         pass
 
 
-class RedisStorage(BaseStorage):
-    def __init__(self, redis_adapter: Redis):
-        self.redis_adapter = redis_adapter
+class JsonFileStorage(BaseStorage):
+    def __init__(self, file_path: Optional[str] = None):
+        self.file_path = file_path
 
     def save_state(self, state: dict) -> None:
-        self.redis_adapter.set(
-            "start_from_ts", json.dumps(state, cls=EnhancedJSONEncoder)
-        )
+        """Сохранить состояние в постоянное хранилище"""
+        with open(self.file_path, 'w') as f:
+            json.dump(state, f)
 
     def retrieve_state(self) -> dict:
-        raw_data = self.redis_adapter.get("start_from_ts")
-        if raw_data is None:
-            logging.debug("No state file provided. Continue with in-memory state")
+        """Загрузить состояние локально из постоянного хранилища"""
+        try:
+            with open(self.file_path, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
             return {}
-        return json.loads(raw_data)
+
+
+class State:
+    """
+    Класс для хранения состояния при работе с данными, чтобы постоянно не перечитывать данные с начала.
+    Здесь представлена реализация с сохранением состояния в файл.
+    В целом ничего не мешает поменять это поведение на работу с БД или распределённым хранилищем.
+    """
+
+    def __init__(self, storage: BaseStorage):
+        self.storage = storage
+
+    def set_state(self, key: str, value: Any) -> None:
+        """Установить состояние для определённого ключа"""
+        state = self.storage.retrieve_state()
+        state[key] = value
+        self.storage.save_state(state)
+
+    def get_state(self, key: str) -> Any:
+        """Получить состояние по определённому ключу"""
+        try:
+            return self.storage.retrieve_state()[key]
+        except KeyError:
+            return None
