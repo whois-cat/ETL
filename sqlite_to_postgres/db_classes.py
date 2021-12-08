@@ -1,6 +1,7 @@
-import uuid
 import datetime
+import uuid
 from dataclasses import dataclass
+
 
 @dataclass
 class Genre:

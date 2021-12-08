@@ -1,13 +1,14 @@
+import logging
 import os
 import sqlite3
-import psycopg2
-import logging
 from contextlib import closing
+
+import psycopg2
 from dotenv import load_dotenv
-from sqlite_loader import SQLiteLoader
 from postgres_saver import PostgresSaver
 from psycopg2.extensions import connection as _connection
 from psycopg2.extras import DictCursor
+from sqlite_loader import SQLiteLoader
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()

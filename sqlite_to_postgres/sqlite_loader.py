@@ -1,7 +1,8 @@
-import sqlite3
 import logging
+import sqlite3
 from dataclasses import asdict
-from db_classes import Genre, Person, FilmWork, GenreFilmWork, PersonFilmWork
+
+from db_classes import FilmWork, Genre, GenreFilmWork, Person, PersonFilmWork
 
 
 class SQLiteLoader:
