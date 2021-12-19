@@ -49,9 +49,6 @@ curl -v -XPUT http://es:9200/movies -H 'Content-Type: application/json' -d'
       "imdb_rating": {
         "type": "float"
       },
-      "genre": {
-        "type": "keyword"
-      },
       "title": {
         "type": "text",
         "analyzer": "ru_en",
@@ -62,10 +59,6 @@ curl -v -XPUT http://es:9200/movies -H 'Content-Type: application/json' -d'
         }
       },
       "description": {
-        "type": "text",
-        "analyzer": "ru_en"
-      },
-      "director": {
         "type": "text",
         "analyzer": "ru_en"
       },
@@ -103,7 +96,7 @@ curl -v -XPUT http://es:9200/movies -H 'Content-Type: application/json' -d'
           }
         }
       },
-       "directors": {
+       "director": {
         "type": "nested",
         "dynamic": "strict",
         "properties": {
@@ -116,7 +109,7 @@ curl -v -XPUT http://es:9200/movies -H 'Content-Type: application/json' -d'
           }
         }
       },
-      "genres": {
+      "genre": {
         "type": "nested",
         "dynamic": "strict",
         "properties": {

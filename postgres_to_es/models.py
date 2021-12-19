@@ -12,13 +12,11 @@ class Person(BaseModel):
 class FilmWork(BaseModel):
     id: uuid.UUID
     imdb_rating: Optional[float]
-    genre: list[str]
+    genre: list[dict[str, str]]
     title: str
     description: Optional[str]
-    director: Optional[str]
+    director: list[Person]
     actors_names: list[str]
     writers_names: list[str]
     actors: list[Person]
     writers: list[Person]
-    directors: list[Person]
-    genres: list[dict[str, str]]
