@@ -20,3 +20,5 @@ class FilmWork(BaseModel):
     writers_names: list[str]
     actors: list[Person]
     writers: list[Person]
+    directors: list[Person]
+    genres: list[dict[str, str]]

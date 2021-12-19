@@ -38,7 +38,7 @@ class ETL:
     )
     def get_and_load_data(self) -> dict:
         query: str = """
-             SELECT
+              SELECT
                  fw.id,
                  fw.title,
                  fw.type,
@@ -46,7 +46,7 @@ class ETL:
                  fw.rating as imdb_rating,
                  fw.created_at,
                  fw.updated_at,
-                 ARRAY_AGG(DISTINCT g.name) AS genre,
+                 JSON_AGG(DISTINCT jsonb_build_object('id', g.id, 'name', g.name)) AS genre,
                  ARRAY_AGG(DISTINCT p.full_name) FILTER (WHERE pfw.role = 'actor') AS actors_names,
                  ARRAY_AGG(DISTINCT p.full_name) FILTER (WHERE pfw.role = 'writer') AS writers_names,
                  GREATEST(
@@ -56,17 +56,17 @@ class ETL:
                      MAX(DISTINCT p.updated_at) FILTER (WHERE pfw.role = 'actor'),
                      MAX(DISTINCT p.updated_at) FILTER (WHERE pfw.role = 'director')
                  ) as all_updated_at,
-                 STRING_AGG(DISTINCT p.full_name, ',') FILTER (WHERE pfw.role = 'director') as director,
+                 JSON_AGG(DISTINCT jsonb_build_object('id', p.id, 'name', p.full_name)) FILTER (WHERE pfw.role = 'director') -> 0 AS director,
                  JSON_AGG(DISTINCT jsonb_build_object('id', p.id, 'name', p.full_name)) FILTER (WHERE pfw.role = 'actor') AS actors,
                  JSON_AGG(DISTINCT jsonb_build_object('id', p.id, 'name', p.full_name)) FILTER (WHERE pfw.role = 'writer') AS writers
-             FROM content.film_work fw
-             LEFT OUTER JOIN content.genre_film_work gfw ON fw.id = gfw.film_work_id
-             LEFT OUTER JOIN content.genre g ON (gfw.genre_id = g.id)
-             LEFT OUTER JOIN content.person_film_work pfw ON (fw.id = pfw.film_work_id)
-             LEFT OUTER JOIN content.person p ON (pfw.person_id = p.id)
-             GROUP BY fw.id, fw.title, fw.description, fw.rating
-             HAVING fw.updated_at > %(date)s OR MAX(g.updated_at) > %(date)s OR MAX(p.updated_at) > %(date)s
-             ORDER BY fw.updated_at
+              FROM content.film_work fw
+              LEFT OUTER JOIN content.genre_film_work gfw ON fw.id = gfw.film_work_id
+              LEFT OUTER JOIN content.genre g ON (gfw.genre_id = g.id)
+              LEFT OUTER JOIN content.person_film_work pfw ON (fw.id = pfw.film_work_id)
+              LEFT OUTER JOIN content.person p ON (pfw.person_id = p.id)
+              GROUP BY fw.id, fw.title, fw.description, fw.rating
+              HAVING fw.updated_at > %(date)s OR MAX(g.updated_at) > %(date)s OR MAX(p.updated_at) > %(date)s
+              ORDER BY fw.updated_at
         """
         self.cursor.execute(query, {"date": (self.get_state(),)})
         logging.info("Data extracted.")
