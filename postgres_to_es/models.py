@@ -15,7 +15,7 @@ class FilmWork(BaseModel):
     genre: list[dict[str, str]]
     title: str
     description: Optional[str]
-    director: list[Person]
+    director: Optional[Person]
     actors_names: list[str]
     writers_names: list[str]
     actors: list[Person]
