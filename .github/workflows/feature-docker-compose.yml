@@ -4,9 +4,9 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [ feature-docker-compose ]
   pull_request:
-    branches: [ main ]
+    branches: [ feature-docker-compose ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -28,16 +28,18 @@ jobs:
         uses: docker/setup-buildx-action@v1
         with:
           driver-opts: network=host
-      - name: Build service for Async-service
+      - name: Build service for ETL-service
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: lobart/yandex-async
+          tags: lobart/yandex-admin
           file: Dockerfile
-          
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Build service for Sqlite-to-postgres
         uses: docker/build-push-action@v2
         with:
+          context: sqlite_to_postgres
           push: true
           tags: lobart/yandex-sqlite-to-postgres
           file: sqlite_to_postgres/Dockerfile
@@ -45,7 +47,8 @@ jobs:
       - name: Build service for Postgres to es
         uses: docker/build-push-action@v2
         with:
+          context: postgres_to_es
           push: true
-          tags: lobart/yandex-postgres-to-es
+          tags: lobart/yandex-etl
           file: postgres_to_es/Dockerfile
           
