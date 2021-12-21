@@ -12,4 +12,6 @@ COPY requirements.txt /etl/
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
+COPY . /etl
+
 ENTRYPOINT ["sh", "-c", "sleep 10 && sh /etl/schema.sh || true && python3 main.py"]
