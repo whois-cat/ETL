@@ -37,10 +37,10 @@ jobs:
           
       - name: Build service for Sqlite-to-postgres
         uses: docker/build-push-action@v2
+        working-directory: sqlite_to_postgres
         with:
           push: true
           tags: lobart/yandex-sqlite-to-postgres
-          context: sqlite_to_postgres
           
       - name: Build service for Postgres to es
         uses: docker/build-push-action@v2
