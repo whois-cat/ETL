@@ -40,7 +40,7 @@ jobs:
         with:
           push: true
           tags: lobart/yandex-sqlite-to-postgres
-          file: sqlite_to_postgres/Dockerfile
+          context: sqlite_to_postgres
           
       - name: Build service for Postgres to es
         uses: docker/build-push-action@v2
