@@ -30,7 +30,7 @@ jobs:
           driver-opts: network=host
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Build service for ETL-service
+      - name: Build service for Django-admin-service
         uses: docker/build-push-action@v2
         with:
           push: true
@@ -44,7 +44,7 @@ jobs:
           tags: lobart/yandex-sqlite-to-postgres
           file: sqlite_to_postgres/Dockerfile
           
-      - name: Build service for Postgres to es
+      - name: Build service for ETL
         uses: docker/build-push-action@v2
         with:
           context: postgres_to_es
