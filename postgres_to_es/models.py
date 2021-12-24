@@ -15,6 +15,10 @@ class Person(BaseModel):
     role: List[str]
     film_ids: List[UUID]
 
+class PersonSimple(BaseModel):
+    id: UUID
+    name: str
+
 
 class FilmWork(BaseModel):
     id: UUID
@@ -22,8 +26,8 @@ class FilmWork(BaseModel):
     genre: List[dict[str, str]]
     title: str
     description: Optional[str]
-    director: Optional[Person]
+    director: Optional[PersonSimple]
     actors_names: List[str]
     writers_names: List[str]
-    actors: List[Person]
-    writers: List[Person]
+    actors: List[PersonSimple]
+    writers: List[PersonSimple]
