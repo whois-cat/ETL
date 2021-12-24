@@ -1,5 +1,5 @@
-curl -v -XPUT http://es:9200/genres -H 'Content-Type: application/json' -d'
 {
+  "createIfNotExists": true,
   "settings": {
     "refresh_interval": "1s",
     "analysis": {
@@ -45,12 +45,12 @@ curl -v -XPUT http://es:9200/genres -H 'Content-Type: application/json' -d'
     "dynamic": "strict",
     "properties": {
       "id": {
-            "type": "keyword"
-          },
+        "type": "keyword"
+      },
       "name": {
         "type": "text",
         "analyzer": "ru_en"
       }
     }
   }
-}'
+}

@@ -1,5 +1,5 @@
-curl -v -XPUT http://es:9200/movies -H 'Content-Type: application/json' -d'
 {
+  "createIfNotExists": true,
   "settings": {
     "refresh_interval": "1s",
     "analysis": {
@@ -53,7 +53,7 @@ curl -v -XPUT http://es:9200/movies -H 'Content-Type: application/json' -d'
         "type": "text",
         "analyzer": "ru_en",
         "fields": {
-          "raw": { 
+          "raw": {
             "type":  "keyword"
           }
         }
@@ -124,4 +124,4 @@ curl -v -XPUT http://es:9200/movies -H 'Content-Type: application/json' -d'
       }
     }
   }
-}'
+}
