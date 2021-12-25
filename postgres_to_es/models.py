@@ -1,33 +1,47 @@
-from uuid import UUID
-from typing import Optional, List
+import uuid
+from typing import Optional
 
 from pydantic import BaseModel
 
 
-class Genre(BaseModel):
-    id: UUID
-    name: str
-
-
 class Person(BaseModel):
-    id: UUID
-    full_name: str
-    role: List[str]
-    film_ids: List[UUID]
-
-class PersonSimple(BaseModel):
-    id: UUID
+    id: uuid.UUID
     name: str
 
 
 class FilmWork(BaseModel):
-    id: UUID
+    id: uuid.UUID
     imdb_rating: Optional[float]
-    genre: List[dict[str, str]]
+    genre: list[dict[str, str]]
     title: str
     description: Optional[str]
-    director: Optional[PersonSimple]
-    actors_names: List[str]
-    writers_names: List[str]
-    actors: List[PersonSimple]
-    writers: List[PersonSimple]
+    director: Optional[Person]
+    actors_names: list[str]
+    writers_names: list[str]
+    actors: list[Person]
+    writers: list[Person]
+
+
+class ShortInfoPerson(BaseModel):
+    id: uuid.UUID
+    role: str
+    title: str
+    film_work_id: uuid.UUID
+
+
+class ShortInfoGenre(BaseModel):
+    id: uuid.UUID
+    title: str
+    film_work_id: uuid.UUID
+
+
+class Person(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    films: list[ShortInfoPerson]
+
+
+class Genre(BaseModel):
+    id: str
+    name: str
+    films: list[ShortInfoGenre]

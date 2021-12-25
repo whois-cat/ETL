@@ -1,5 +1,4 @@
 {
-  "createIfNotExists": true,
   "settings": {
     "refresh_interval": "1s",
     "analysis": {
