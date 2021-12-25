@@ -1,12 +1,12 @@
-name: CI-main
+name: CI-genres-persons
 
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [ feature-genre-person ]
   pull_request:
-    branches: [ main ]
+    branches: [ feature-genre-person ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -49,6 +49,6 @@ jobs:
         with:
           context: postgres_to_es
           push: true
-          tags: lobart/yandex-etl
+          tags: lobart/yandex-etl:feature-genre-person
           file: postgres_to_es/Dockerfile
           

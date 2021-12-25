@@ -14,4 +14,4 @@ RUN pip install --upgrade pip \
 
 COPY . /etl
 
-ENTRYPOINT ["sh", "-c", "sleep 10 && sh schema.sh || true && python3 main.py"]
+ENTRYPOINT ["sh", "-c", "sleep 10 && sh create_indexes.sh || true && python3 main.py"]
