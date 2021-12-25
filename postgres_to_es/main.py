@@ -1,45 +1,31 @@
 import logging
 import os
+import sys
 from contextlib import closing
 from datetime import datetime
+from inspect import cleandoc
 from time import sleep
 
 import psycopg2
 from dotenv import load_dotenv
-from inspect import cleandoc
 from psycopg2.extras import RealDictCursor
 from urllib3.exceptions import HTTPError
 
 import backoff
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ElasticsearchException
-from models import FilmWork, Person, Genre
+from models import FilmWork, Genre, Person
 from state import JsonFileStorage, State
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
-
-class ETL:
-    def __init__(self, conn) -> None:
-        self.cursor = conn.cursor()
-        self.state = State(storage=JsonFileStorage(file_path="state.json"))
-        self.es = Elasticsearch([f'{os.environ.get("ES_HOST")}'])
-
-    def get_state(self, index) -> datetime:
-        last_last_updated_at = self.state.get_state(f"last_{index}_updated_at")
-        if last_last_updated_at is None:
-            last_last_updated_at = datetime.fromtimestamp(0)
-        else:
-            last_last_updated_at = datetime.fromisoformat(last_last_updated_at)
-        return last_last_updated_at
-
-    def queries(self) -> tuple:
-        queries = (
-            {
-                'index': 'movies',
-                'model': 'FilmWork',
-                'query': cleandoc('''
+queries = (
+    {
+        "index": "movies",
+        "model": FilmWork,
+        "query": cleandoc(
+            """
                     SELECT
                         fw.id,
                         fw.title,
@@ -52,11 +38,11 @@ class ETL:
                     ARRAY_AGG(DISTINCT p.full_name) FILTER (WHERE pfw.role = 'actor') AS actors_names,
                     ARRAY_AGG(DISTINCT p.full_name) FILTER (WHERE pfw.role = 'writer') AS writers_names,
                     GREATEST(
-                      fw.updated_at,
-                      MAX(g.updated_at),
-                      MAX(DISTINCT p.updated_at) FILTER (WHERE pfw.role = 'writer'),
-                      MAX(DISTINCT p.updated_at) FILTER (WHERE pfw.role = 'actor'),
-                      MAX(DISTINCT p.updated_at) FILTER (WHERE pfw.role = 'director')
+                        fw.updated_at,
+                        MAX(g.updated_at),
+                        MAX(DISTINCT p.updated_at) FILTER (WHERE pfw.role = 'writer'),
+                        MAX(DISTINCT p.updated_at) FILTER (WHERE pfw.role = 'actor'),
+                        MAX(DISTINCT p.updated_at) FILTER (WHERE pfw.role = 'director')
                     ) as all_updated_at,
                     JSON_AGG(DISTINCT jsonb_build_object('id', p.id, 'name', p.full_name)) FILTER (WHERE pfw.role = 'director') -> 0 AS director,
                     JSON_AGG(DISTINCT jsonb_build_object('id', p.id, 'name', p.full_name)) FILTER (WHERE pfw.role = 'actor') AS actors,
@@ -69,12 +55,14 @@ class ETL:
                     GROUP BY fw.id, fw.title, fw.description, fw.rating
                     HAVING fw.updated_at > %(date)s OR MAX(g.updated_at) > %(date)s OR MAX(p.updated_at) > %(date)s
                     ORDER BY fw.updated_at;
-                '''),
-            },
-            {
-                'index': 'genres',
-                'model': 'Genre',
-                'query': cleandoc('''
+                """
+        ),
+    },
+    {
+        "index": "genres",
+        "model": Genre,
+        "query": cleandoc(
+            """
                      SELECT
                          g.id,
                          g.name,
@@ -96,12 +84,14 @@ class ETL:
                      GROUP BY g.id, g.name
                      HAVING g.updated_at > %(date)s OR MAX(gfw.created_at) > %(date)s or MAX(fw.updated_at) > %(date)s
                      ORDER BY g.updated_at;
-                '''),
-            },
-            {
-                'index': 'persons',
-                'model': 'Person',
-                'query': cleandoc('''
+                """
+        ),
+    },
+    {
+        "index": "persons",
+        "model": Person,
+        "query": cleandoc(
+            """
                     SELECT
                         p.id,
                         p.full_name,
@@ -124,16 +114,31 @@ class ETL:
                     GROUP BY p.id, p.full_name
                     HAVING p.updated_at > %(date)s OR MAX(pfw.created_at) > %(date)s or MAX(fw.updated_at) > %(date)s
                     ORDER BY p.updated_at;
-                '''),
-            },
-        )
-        return queries
+                """
+        ),
+    },
+)
+
+
+class ETL:
+    def __init__(self, conn) -> None:
+        self.cursor = conn.cursor()
+        self.state = State(storage=JsonFileStorage(file_path="state.json"))
+        self.es = Elasticsearch([f'{os.environ.get("ES_HOST")}'])
+
+    def get_state(self, index) -> datetime:
+        last_last_updated_at = self.state.get_state(f"last_{index}_updated_at")
+        if last_last_updated_at is None:
+            last_last_updated_at = datetime.fromtimestamp(0)
+        else:
+            last_last_updated_at = datetime.fromisoformat(last_last_updated_at)
+        return last_last_updated_at
 
     @backoff.on_exception(
         wait_gen=backoff.expo, exception=(psycopg2.Error, psycopg2.OperationalError)
     )
     def extract(self, query):
-        self.cursor.execute(query['query'], {"date": (self.get_state(query['index']),)})
+        self.cursor.execute(query["query"], {"date": (self.get_state(query["index"]),)})
         logging.info("Data extracted.")
         while batch := self.cursor.fetchmany(int(os.environ.get("BATCH_SIZE"))):
             yield from batch
@@ -144,20 +149,28 @@ class ETL:
         max_tries=10,
     )
     def load_data(self) -> None:
-        for query in self.queries():
+        for query in queries:
             for data in self.extract(query):
-                if query['index'] == 'movies':
+                if query["index"] == "movies":
                     for f in (
-                            "actors_names",
-                            "writers_names",
-                            "actors",
-                            "writers",
+                        "actors_names",
+                        "writers_names",
+                        "actors",
+                        "writers",
                     ):
                         if data[f] is None:
                             data[f] = []
-                data_obj = eval(query['model'])(**data)
-                self.es.index(index=query['index'], doc_type="doc", id=data_obj.id, body=data_obj.dict())
-                self.state.set_state(f"last_{query['index']}_updated_at", data["all_updated_at"].isoformat())
+                data_obj = query["model"](**data)
+                self.es.index(
+                    index=query["index"],
+                    doc_type="doc",
+                    id=data_obj.id,
+                    body=data_obj.dict(),
+                )
+                self.state.set_state(
+                    f"last_{query['index']}_updated_at",
+                    data["all_updated_at"].isoformat(),
+                )
             logging.info("Data loaded.")
 
     def etl(self) -> None:

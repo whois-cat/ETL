@@ -22,26 +22,23 @@ class FilmWork(BaseModel):
     writers: list[Person]
 
 
-class ShortInfoPerson(BaseModel):
+class FilmWorkShort(BaseModel):
     id: uuid.UUID
+    title: str
+    film_work_id: uuid.UUID
+
+
+class FilmWorkShortWithRole(FilmWorkShort):
     role: str
-    title: str
-    film_work_id: uuid.UUID
-
-
-class ShortInfoGenre(BaseModel):
-    id: uuid.UUID
-    title: str
-    film_work_id: uuid.UUID
 
 
 class Person(BaseModel):
     id: uuid.UUID
     full_name: str
-    films: list[ShortInfoPerson]
+    films: list[FilmWorkShortWithRole]
 
 
 class Genre(BaseModel):
     id: str
     name: str
-    films: list[ShortInfoGenre]
+    films: list[FilmWorkShort]
