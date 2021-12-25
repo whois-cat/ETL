@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-class Person(BaseModel):
+class PersonRole(BaseModel):
     id: uuid.UUID
     name: str
 
@@ -15,11 +15,11 @@ class FilmWork(BaseModel):
     genre: list[dict[str, str]]
     title: str
     description: Optional[str]
-    director: Optional[Person]
+    director: Optional[PersonRole]
     actors_names: list[str]
     writers_names: list[str]
-    actors: list[Person]
-    writers: list[Person]
+    actors: list[PersonRole]
+    writers: list[PersonRole]
 
 
 class FilmWorkShort(BaseModel):
