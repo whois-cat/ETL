@@ -25,11 +25,11 @@ class FilmWork(BaseModel):
 class FilmWorkShort(BaseModel):
     id: uuid.UUID
     title: str
-    film_work_id: uuid.UUID
 
 
 class FilmWorkShortWithRole(FilmWorkShort):
     role: str
+    imdb_rating: Optional[float]
 
 
 class Person(BaseModel):

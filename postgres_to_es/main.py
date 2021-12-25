@@ -74,9 +74,8 @@ queries = (
                              MAX(fw.updated_at)
                          ) as all_updated_at,
                          JSON_AGG(DISTINCT jsonb_build_object(
-                             'title', fw.title, 
-                             'id', gfw.id, 
-                             'film_work_id', gfw.film_work_id)
+                             'id', fw.id,
+                             'title', fw.title)
                          ) AS films
                      FROM content.genre g
                      LEFT OUTER JOIN content.genre_film_work gfw ON (g.id = gfw.genre_id)
@@ -103,10 +102,10 @@ queries = (
                             MAX(fw.updated_at)
                         ) AS all_updated_at,
                         JSON_AGG(DISTINCT jsonb_build_object(
+                            'id', pfw.film_work_id, 
                             'title', fw.title, 
-                            'id', pfw.id, 
-                            'film_work_id', pfw.film_work_id, 
-                            'role', pfw.role)
+                            'role', pfw.role,
+                            'imdb_rating', fw.rating)
                         ) AS films
                     FROM content.person p
                     LEFT OUTER JOIN content.person_film_work pfw ON (p.id = pfw.person_id)
