@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import json
 from contextlib import closing
 from datetime import datetime
 from inspect import cleandoc
@@ -162,7 +163,7 @@ class ETL:
                 data_obj = query["model"](**data)
                 self.es.index(
                     index=query["index"],
-                    doc_type="doc",
+                    doc_type="_doc",
                     id=data_obj.id,
                     body=data_obj.dict(),
                 )
