@@ -162,7 +162,7 @@ class ETL:
                 data_obj = query["model"](**data)
                 self.es.index(
                     index=query["index"],
-                    doc_type="doc",
+                    doc_type="_doc",
                     id=data_obj.id,
                     body=data_obj.dict(),
                 )

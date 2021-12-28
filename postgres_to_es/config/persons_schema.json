@@ -69,8 +69,8 @@
             "type": "text",
             "analyzer": "ru_en"
           },
-          "film_work_id": {
-            "type": "keyword"
+          "imdb_rating": {
+            "type": "float"
           }
         }
       }
