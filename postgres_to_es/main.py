@@ -15,7 +15,7 @@ import backoff
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ElasticsearchException
 from models import FilmWork, Genre, Person
-from state import JsonFileStorage, State
+from state import State, BaseStorage, JsonFileStorage
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -119,28 +119,45 @@ queries = (
 )
 
 
-class ETL:
-    def __init__(self, conn) -> None:
+class Extraction:
+    def __init__(self, conn, query) -> None:
         self.cursor = conn.cursor()
-        self.state = State(storage=JsonFileStorage(file_path="state.json"))
-        self.es = Elasticsearch([f'{os.environ.get("ES_HOST")}'])
-
-    def get_state(self, index) -> datetime:
-        last_last_updated_at = self.state.get_state(f"last_{index}_updated_at")
-        if last_last_updated_at is None:
-            last_last_updated_at = datetime.fromtimestamp(0)
-        else:
-            last_last_updated_at = datetime.fromisoformat(last_last_updated_at)
-        return last_last_updated_at
+        self.query = query
 
     @backoff.on_exception(
         wait_gen=backoff.expo, exception=(psycopg2.Error, psycopg2.OperationalError)
     )
-    def extract(self, query):
-        self.cursor.execute(query["query"], {"date": (self.get_state(query["index"]),)})
+    def extract(self, since_last_updated):
+        self.cursor.execute(self.query["query"], {"date": (since_last_updated,)})
         logging.info("Data extracted.")
         while batch := self.cursor.fetchmany(int(os.environ.get("BATCH_SIZE"))):
             yield from batch
+
+
+class Transform:
+    def __init__(self, conn, query, data) -> None:
+        self.query = query
+        self.data = data
+        self.cursor = conn.cursor()
+
+    def transform(self):
+        if self.query["index"] == "movies":
+            for f in (
+                "actors_names",
+                "writers_names",
+                "actors",
+                "writers",
+            ):
+                if self.data[f] is None:
+                    self.data[f] = []
+        return self.query["model"](**data)
+
+
+class Load:
+    def __init__(self, conn, data_obj) -> None:
+        self.data_obj = data_obj
+        self.cursor = conn.cursor()
+        self.es = Elasticsearch([f'{os.environ.get("ES_HOST")}'])
 
     @backoff.on_exception(
         wait_gen=backoff.expo,
@@ -148,34 +165,13 @@ class ETL:
         max_tries=10,
     )
     def load_data(self) -> None:
-        for query in queries:
-            for data in self.extract(query):
-                if query["index"] == "movies":
-                    for f in (
-                        "actors_names",
-                        "writers_names",
-                        "actors",
-                        "writers",
-                    ):
-                        if data[f] is None:
-                            data[f] = []
-                data_obj = query["model"](**data)
-                self.es.index(
-                    index=query["index"],
-                    doc_type="_doc",
-                    id=data_obj.id,
-                    body=data_obj.dict(),
-                )
-                self.state.set_state(
-                    f"last_{query['index']}_updated_at",
-                    data["all_updated_at"].isoformat(),
-                )
-            logging.info("Data loaded.")
-
-    def etl(self) -> None:
-        while True:
-            self.load_data()
-            sleep(1)
+        self.es.index(
+            index=query["index"],
+            doc_type="doc",
+            id=self.data_obj.id,
+            body=self.data_obj.dict(),
+        )
+        logging.info("Data loaded.")
 
 
 if __name__ == "__main__":
@@ -186,6 +182,18 @@ if __name__ == "__main__":
         "host": os.environ.get("POSTGRES_HOST"),
         "port": os.environ.get("POSTGRES_PORT"),
     }
+    state = State(storage=JsonFileStorage(file_path="state.json"))
     with closing(psycopg2.connect(**dsn, cursor_factory=RealDictCursor)) as pg_conn:
         logging.info("PostgreSQL connection is open. Start load movies data.")
-        ETL(pg_conn).etl()
+        while True:
+            for query in queries:
+                state_key = f"last_{query['index']}_updated_at"
+                since = datetime.fromisoformat(state.get_state(state_key) or '1970-01-01T00:00:00')
+                for data in Extraction(pg_conn, query).extract(since_last_updated=since):
+                    data_obj = Transform(pg_conn, query, data).transform()
+                    Load(pg_conn, data_obj).load_data()
+                    state.set_state(
+                        state_key,
+                        data["all_updated_at"].isoformat(),
+                    )
+            sleep(1)

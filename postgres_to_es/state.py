@@ -45,6 +45,7 @@ class State:
 
     def set_state(self, key: str, value: Any) -> None:
         """Установить состояние для определённого ключа"""
+        # self.state = State(storage=JsonFileStorage(file_path="state.json"))
         state = self.storage.retrieve_state()
         state[key] = value
         self.storage.save_state(state)
